@@ -11,6 +11,8 @@ import CoreBluetooth
 
 class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     
+    // MARK: - Bluetooth GATT Services
+    
     // Bluetooth GATT specifications - Services
     // https://developer.bluetooth.org/gatt/services/Pages/ServicesHome.aspx
     //
@@ -24,6 +26,8 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
     }
     
+    // MARK: - Bluetooth GATT Characteristics
+    
     // Bluetooth GATT specifications - Characteristics
     // https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicsHome.aspx
     //
@@ -33,11 +37,20 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         case HeartRateMeasurement   = 0x2A37
         case ManufacturerNameString = 0x2A29
         
+        func isEqual(characteristic: AnyObject) -> Bool {
+            if let characteristic = characteristic as? CBCharacteristic {
+                return self.UUID().isEqual(characteristic.UUID)
+            }
+            return false
+        }
+        
         func UUID() -> CBUUID {
             return CBUUID(string: String(self.rawValue, radix: 16, uppercase: true))
         }
     }
 
+    // MARK: - Bluetooth Heart Rate Measurement Flags
+    
     // Heart Rate Measurement flags as defined on the Bluetooth developer portal.
     // https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml
     //
@@ -54,6 +67,8 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
     }
     
+    // MARK: - Properties
+    
     var centralManager: CBCentralManager? = nil
     var polarH7HRMPeripheral: CBPeripheral? = nil
     
@@ -61,6 +76,8 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var polarH7DeviceData: String? = nil
     
 //    var heartRate: Int
+    
+    // MARK: - Methods
     
     func scanForDevices()
     {
@@ -70,6 +87,56 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         self.centralManager = CBCentralManager(delegate:self, queue:nil)
         
     //   [centralManager scanForPeripheralsWithServices:services options:nil];
+    }
+    
+    func getHeartRateMeasurementData(hrmData: NSData)
+    {
+        // Maintain an index into the measurement data of the next byte to read.
+        var byteIndex = 0
+        
+        var hrmFlags: UInt8 = 0
+        hrmData.getBytes(&hrmFlags, length: sizeof(UInt8))
+        byteIndex += sizeof(UInt8)
+        
+        if HeartRateMeasurement.HeartRateValueFormatUInt16.flagIsSet(hrmFlags) {
+            var value: UInt16 = 0
+            hrmData.getBytes(&value, range: NSMakeRange(byteIndex, sizeof(UInt16)))
+            byteIndex += sizeof(UInt16)
+            heartRate = Int(value)
+        }
+        else {
+            var value: UInt8 = 0
+            hrmData.getBytes(&value, length: sizeof(UInt8))
+            byteIndex += sizeof(UInt8)
+            heartRate = Int(value)
+        }
+        
+        if HeartRateMeasurement.SensorContactIsSupported.flagIsSet(hrmFlags) {
+            sensorDetected = HeartRateMeasurement.SensorContactDetected.flagIsSet(hrmFlags)
+        }
+        
+        if HeartRateMeasurement.EnergyExpended.flagIsSet(hrmFlags) {
+            var value: UInt16 = 0
+            hrmData.getBytes(&value, range: NSMakeRange(byteIndex, sizeof(UInt16)))
+            byteIndex += sizeof(UInt16)
+            energyExpended = Int(value)
+        }
+        
+        if HeartRateMeasurement.RRInterval.flagIsSet(hrmFlags) {
+            while byteIndex < hrmData.length {
+                var value: UInt16 = 0
+                hrmData.getBytes(&value, range: NSMakeRange(byteIndex, sizeof(UInt16)))
+                byteIndex += sizeof(UInt16)
+                rrIntervals.append(Float(value) / 1024.0)
+            }
+        }
+        
+        NSLog("Heart rate: \(heartRate)")
+        NSLog("Sensor detected: \(sensorDetected)")
+        if let energyExpended = energyExpended {
+            NSLog("Energy expended: \(energyExpended)")
+        }
+        NSLog("RR Intervals: \(rrIntervals)")
     }
     
     // MARK: - CBCentralManagerDelegate
@@ -143,12 +210,12 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         if service.UUID.isEqual(BlueToothGATTServices.HeartRate.UUID()) {
             for characteristic in service.characteristics {
                 // Request heart rate notifications
-                if (characteristic as! CBCharacteristic).UUID.isEqual(BlueToothGATTCharacteristics.HeartRateMeasurement.UUID()) {
+                if BlueToothGATTCharacteristics.HeartRateMeasurement.isEqual(characteristic) {
                     self.polarH7HRMPeripheral?.setNotifyValue(true, forCharacteristic: (characteristic as! CBCharacteristic))
                     NSLog("Found heart rate measurement characteristic")
                 }
                 // Request body sensor location
-                else if (characteristic as! CBCharacteristic).UUID.isEqual(BlueToothGATTCharacteristics.BodySensorLocation.UUID()) {
+                else if BlueToothGATTCharacteristics.BodySensorLocation.isEqual(characteristic) {
                     self.polarH7HRMPeripheral?.readValueForCharacteristic(characteristic as! CBCharacteristic)
                     NSLog("Found body sensor location characteristic")
                 }
@@ -158,7 +225,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // Retrieve Device Information Services for the Manufacturer Name
         if service.UUID.isEqual(BlueToothGATTServices.DeviceInformation.UUID()) {
             for characteristic in service.characteristics {
-                if (characteristic as! CBCharacteristic).UUID.isEqual(BlueToothGATTCharacteristics.ManufacturerNameString.UUID()) {
+                if BlueToothGATTCharacteristics.ManufacturerNameString.isEqual(characteristic) {
                     self.polarH7HRMPeripheral?.readValueForCharacteristic(characteristic as! CBCharacteristic)
                     NSLog("Found a device manufacturer name string characteristic");
                 }
@@ -168,7 +235,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         // Retrieve Device Information Services for the Manufacturer Name
         if service.UUID.isEqual(BlueToothGATTServices.BatteryService.UUID()) {
             for characteristic in service.characteristics {
-                if (characteristic as! CBCharacteristic).UUID.isEqual(BlueToothGATTCharacteristics.BatteryLevel.UUID()) {
+                if BlueToothGATTCharacteristics.BatteryLevel.isEqual(characteristic) {
                     self.polarH7HRMPeripheral?.readValueForCharacteristic(characteristic as! CBCharacteristic)
                     NSLog("Found the battery level characteristic");
                 }
@@ -221,56 +288,6 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var sensorDetected = false
     var energyExpended:Int?
     var rrIntervals = [Float]()
-    
-    func getHeartRateMeasurementData(hrmData: NSData)
-    {
-        // Maintain an index into the measurement data of the next byte to read.
-        var byteIndex = 0
-        
-        var hrmFlags: UInt8 = 0
-        hrmData.getBytes(&hrmFlags, length: sizeof(UInt8))
-        byteIndex += sizeof(UInt8)
-        
-        if HeartRateMeasurement.HeartRateValueFormatUInt16.flagIsSet(hrmFlags) {
-            var value: UInt16 = 0
-            hrmData.getBytes(&value, range: NSMakeRange(byteIndex, sizeof(UInt16)))
-            byteIndex += sizeof(UInt16)
-            heartRate = Int(value)
-        }
-        else {
-            var value: UInt8 = 0
-            hrmData.getBytes(&value, length: sizeof(UInt8))
-            byteIndex += sizeof(UInt8)
-            heartRate = Int(value)
-        }
-        
-        if HeartRateMeasurement.SensorContactIsSupported.flagIsSet(hrmFlags) {
-            sensorDetected = HeartRateMeasurement.SensorContactDetected.flagIsSet(hrmFlags)
-        }
-        
-        if HeartRateMeasurement.EnergyExpended.flagIsSet(hrmFlags) {
-            var value: UInt16 = 0
-            hrmData.getBytes(&value, range: NSMakeRange(byteIndex, sizeof(UInt16)))
-            byteIndex += sizeof(UInt16)
-            energyExpended = Int(value)
-        }
-        
-        if HeartRateMeasurement.RRInterval.flagIsSet(hrmFlags) {
-            while byteIndex < hrmData.length {
-                var value: UInt16 = 0
-                hrmData.getBytes(&value, range: NSMakeRange(byteIndex, sizeof(UInt16)))
-                byteIndex += sizeof(UInt16)
-                rrIntervals.append(Float(value) / 1024.0)
-            }
-        }
-        
-        NSLog("Heart rate: \(heartRate)")
-        NSLog("Sensor detected: \(sensorDetected)")
-        if let energyExpended = energyExpended {
-            NSLog("Energy expended: \(energyExpended)")
-        }
-        NSLog("RR Intervals: \(rrIntervals)")
-    }
     
     func bodyLocation() -> String
     {
