@@ -10,21 +10,18 @@ import UIKit
 
 class HeartRateMonitorViewController: UIViewController {
     
-    var heartRateMonitor: HeartRateMonitor?
+    var heartRateMonitor: HeartRateMonitor!
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
         heartRateMonitor = HeartRateMonitor()
-        heartRateMonitor!.scanForDevices()
+        heartRateMonitor.scanForDevices()
     }
 
     override func didReceiveMemoryWarning() {
         super.didReceiveMemoryWarning()
         // Dispose of any resources that can be recreated.
     }
-
-
 }
-
