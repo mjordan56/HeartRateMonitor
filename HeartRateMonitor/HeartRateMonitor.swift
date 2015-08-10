@@ -75,8 +75,13 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var connected: String? = nil
     var polarH7DeviceData: String? = nil
     
-//    var heartRate: Int
+    private(set) var heartRate = 0
+    private(set) var sensorDetected = false
+    private(set) var energyExpended:Int?
+    private(set) var rrIntervals = [Float]()
     
+    private(set) var manufacturerName: String?
+        
     // MARK: - Methods
     
     func scanForDevices()
@@ -89,7 +94,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     //   [centralManager scanForPeripheralsWithServices:services options:nil];
     }
     
-    func getHeartRateMeasurementData(hrmData: NSData)
+    private func getHeartRateMeasurementData(hrmData: NSData)
     {
         // Maintain an index into the measurement data of the next byte to read.
         var byteIndex = 0
@@ -139,6 +144,13 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         NSLog("RR Intervals: \(rrIntervals)")
     }
     
+    private func getManufacturerName(manufacturerNameData: NSData)
+    {
+        if let manufacturerNameString = NSString(data: manufacturerNameData, encoding: NSUTF8StringEncoding) as? String {
+            manufacturerName = manufacturerNameString
+        }
+    }
+
     // MARK: - CBCentralManagerDelegate
     
     func centralManagerDidUpdateState(central: CBCentralManager!) {
@@ -268,10 +280,11 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             getHeartRateMeasurementData(characteristic.value)
         }
         
-//        // Retrieve the characteristic value for manufacturer name received
-//        if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:POLARH7_HRM_MANUFACTURER_NAME_CHARACTERISTIC_UUID]]) {
-//            [self getManufacturerName:characteristic];
-//        }
+        // Retrieve the characteristic value for manufacturer name.
+        //
+        if characteristic.UUID.isEqual(BlueToothGATTCharacteristics.ManufacturerNameString.UUID()) {
+            getManufacturerName(characteristic.value)
+        }
 //            // Retrieve the characteristic value for the body sensor location received
 //        else if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:POLARH7_HRM_BODY_LOCATION_CHARACTERISTIC_UUID]]) {
 //            [self getBodyLocation:characteristic];
@@ -284,18 +297,8 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     
     // MARK: - ???? Public Methods and Properties
     
-    var heartRate = 0
-    var sensorDetected = false
-    var energyExpended:Int?
-    var rrIntervals = [Float]()
-    
     func bodyLocation() -> String
     {
         return "Body location"
-    }
-    
-    func manufacturerName() -> String
-    {
-        return "Manufacturer name"
     }
 }
