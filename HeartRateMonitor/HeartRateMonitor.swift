@@ -21,7 +21,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         case DeviceInformation = 0x180A
         case HeartRate         = 0x180D
         
-        func UUID() -> CBUUID {
+        var UUID: CBUUID {
             return CBUUID(string: String(self.rawValue, radix: 16, uppercase: true))
         }
     }
@@ -39,12 +39,12 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         
         func isEqual(characteristic: AnyObject) -> Bool {
             if let characteristic = characteristic as? CBCharacteristic {
-                return self.UUID().isEqual(characteristic.UUID)
+                return self.UUID.isEqual(characteristic.UUID)
             }
             return false
         }
         
-        func UUID() -> CBUUID {
+        var UUID: CBUUID {
             return CBUUID(string: String(self.rawValue, radix: 16, uppercase: true))
         }
     }
@@ -81,7 +81,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private(set) var rrIntervals = [Float]()
     
     private(set) var manufacturerName: String?
-        
+    
     // MARK: - Methods
     
     func scanForDevices()
@@ -148,6 +148,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     {
         if let manufacturerNameString = NSString(data: manufacturerNameData, encoding: NSUTF8StringEncoding) as? String {
             manufacturerName = manufacturerNameString
+            NSLog("Manufacturer Name: \(manufacturerName)")
         }
     }
 
@@ -168,7 +169,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             // Scan for all available CoreBluetooth LE devices
             //            NSArray *services = @[[CBUUID UUIDWithString:POLARH7_HRM_HEART_RATE_SERVICE_UUID], [CBUUID UUIDWithString:POLARH7_HRM_DEVICE_INFO_SERVICE_UUID]];
             //            [self.centralManager scanForPeripheralsWithServices:services options:nil];
-            var services = [BlueToothGATTServices.DeviceInformation.UUID(), BlueToothGATTServices.HeartRate.UUID(), BlueToothGATTServices.BatteryService.UUID()]
+            var services = [BlueToothGATTServices.DeviceInformation.UUID, BlueToothGATTServices.HeartRate.UUID, BlueToothGATTServices.BatteryService.UUID]
             self.centralManager?.scanForPeripheralsWithServices(services, options: nil)
             NSLog("Services: \(services.description)")
 
@@ -219,39 +220,40 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     // Invoked when you discover the characteristics of a specified service.
     //
     func peripheral(peripheral: CBPeripheral!, didDiscoverCharacteristicsForService service: CBService!, error: NSError!) {
-        if service.UUID.isEqual(BlueToothGATTServices.HeartRate.UUID()) {
-            for characteristic in service.characteristics {
-                // Request heart rate notifications
-                if BlueToothGATTCharacteristics.HeartRateMeasurement.isEqual(characteristic) {
-                    self.polarH7HRMPeripheral?.setNotifyValue(true, forCharacteristic: (characteristic as! CBCharacteristic))
-                    NSLog("Found heart rate measurement characteristic")
-                }
-                // Request body sensor location
-                else if BlueToothGATTCharacteristics.BodySensorLocation.isEqual(characteristic) {
-                    self.polarH7HRMPeripheral?.readValueForCharacteristic(characteristic as! CBCharacteristic)
-                    NSLog("Found body sensor location characteristic")
-                }
-            }
-        }
         
-        // Retrieve Device Information Services for the Manufacturer Name
-        if service.UUID.isEqual(BlueToothGATTServices.DeviceInformation.UUID()) {
+        switch service.UUID {
+        case BlueToothGATTServices.DeviceInformation.UUID:
             for characteristic in service.characteristics {
                 if BlueToothGATTCharacteristics.ManufacturerNameString.isEqual(characteristic) {
                     self.polarH7HRMPeripheral?.readValueForCharacteristic(characteristic as! CBCharacteristic)
                     NSLog("Found a device manufacturer name string characteristic");
                 }
             }
-        }
-        
-        // Retrieve Device Information Services for the Manufacturer Name
-        if service.UUID.isEqual(BlueToothGATTServices.BatteryService.UUID()) {
+
+        case BlueToothGATTServices.HeartRate.UUID:
+            for characteristic in service.characteristics {
+                // Request heart rate notifications
+                if BlueToothGATTCharacteristics.HeartRateMeasurement.isEqual(characteristic) {
+                    self.polarH7HRMPeripheral?.setNotifyValue(true, forCharacteristic: (characteristic as! CBCharacteristic))
+                    NSLog("Found heart rate measurement characteristic")
+                }
+                    // Request body sensor location
+                else if BlueToothGATTCharacteristics.BodySensorLocation.isEqual(characteristic) {
+                    self.polarH7HRMPeripheral?.readValueForCharacteristic(characteristic as! CBCharacteristic)
+                    NSLog("Found body sensor location characteristic")
+                }
+            }
+
+        case BlueToothGATTServices.BatteryService.UUID:
             for characteristic in service.characteristics {
                 if BlueToothGATTCharacteristics.BatteryLevel.isEqual(characteristic) {
                     self.polarH7HRMPeripheral?.readValueForCharacteristic(characteristic as! CBCharacteristic)
                     NSLog("Found the battery level characteristic");
                 }
             }
+            
+        default:
+            NSLog("Default!")
         }
     }
     
@@ -270,7 +272,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     //
     func peripheral(peripheral: CBPeripheral!, didUpdateValueForCharacteristic characteristic: CBCharacteristic!, error: NSError!) {
         // Update value for heart rate measurement received
-        if characteristic.UUID.isEqual(BlueToothGATTCharacteristics.HeartRateMeasurement.UUID()) {
+        if characteristic.UUID.isEqual(BlueToothGATTCharacteristics.HeartRateMeasurement.UUID) {
             // Get the Heart Rate Monitor BPM
          //   [self getHeartBPMData:characteristic error:error];
             
@@ -280,9 +282,9 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             getHeartRateMeasurementData(characteristic.value)
         }
         
-        // Retrieve the characteristic value for manufacturer name.
+        // Retrieve the manufacturer name string characteristic.
         //
-        if characteristic.UUID.isEqual(BlueToothGATTCharacteristics.ManufacturerNameString.UUID()) {
+        if characteristic.UUID.isEqual(BlueToothGATTCharacteristics.ManufacturerNameString.UUID) {
             getManufacturerName(characteristic.value)
         }
 //            // Retrieve the characteristic value for the body sensor location received
