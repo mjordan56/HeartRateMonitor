@@ -33,4 +33,8 @@ class HeartRateMonitorTests: XCTestCase {
         }
     }
     
+    func testFindPeripherial() {
+        
+    }
+    
 }

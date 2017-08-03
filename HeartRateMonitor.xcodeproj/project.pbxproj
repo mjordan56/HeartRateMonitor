@@ -159,6 +159,7 @@
 		F4547FA41B65762F007A3E11 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftUpdateCheck = 0700;
 				LastUpgradeCheck = 0640;
 				ORGANIZATIONNAME = MichaelJordan;
 				TargetAttributes = {
@@ -415,6 +416,7 @@
 				F4547FCD1B657630007A3E11 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		F4547FCE1B657630007A3E11 /* Build configuration list for PBXNativeTarget "HeartRateMonitorTests" */ = {
 			isa = XCConfigurationList;
@@ -423,6 +425,7 @@
 				F4547FD01B657630007A3E11 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

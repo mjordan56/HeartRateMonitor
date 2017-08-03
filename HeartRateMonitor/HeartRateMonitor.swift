@@ -67,6 +67,21 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         }
     }
     
+    // MARK: - Bluetooth Body Sensor Location Flags
+    
+    // Heart Rate Measurement flags as defined on the Bluetooth developer portal.
+    // https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.body_sensor_location.xml
+    //
+    enum BodySensorLocation: UInt8 {
+        case Other = 0
+        case Chest
+        case Wrist
+        case Finger
+        case Hand
+        case EarLobe
+        case Foot
+    }
+    
     // MARK: - Properties
     
     var centralManager: CBCentralManager? = nil
@@ -79,6 +94,8 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     private(set) var sensorDetected = false
     private(set) var energyExpended:Int?
     private(set) var rrIntervals = [Float]()
+    
+    private(set) var bodySensorLocation: BodySensorLocation?
     
     private(set) var manufacturerName: String?
     
@@ -150,6 +167,37 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             manufacturerName = manufacturerNameString
             NSLog("Manufacturer Name: \(manufacturerName)")
         }
+    }
+
+    private func getBodyLocation(bodyLocationData: NSData)
+    {
+        var value: UInt8 = 0
+        bodyLocationData.getBytes(&value, range: NSMakeRange(0, sizeof(UInt8)))
+        switch value {
+        case BodySensorLocation.Chest.rawValue:
+            bodySensorLocation = BodySensorLocation.Chest
+            
+        case BodySensorLocation.EarLobe.rawValue:
+            bodySensorLocation = BodySensorLocation.Chest
+            
+        case BodySensorLocation.Finger.rawValue:
+            bodySensorLocation = BodySensorLocation.Chest
+            
+        case BodySensorLocation.Foot.rawValue:
+            bodySensorLocation = BodySensorLocation.Chest
+            
+        case BodySensorLocation.Hand.rawValue:
+            bodySensorLocation = BodySensorLocation.Chest
+            
+        case BodySensorLocation.Other.rawValue:
+            bodySensorLocation = BodySensorLocation.Chest
+            
+        case BodySensorLocation.EarLobe.rawValue:
+            bodySensorLocation = BodySensorLocation.Chest
+            
+        }
+        bodySensorLocation = BodySensorLocation(value)
+        NSLog("Body Location: \(bodySensorLocation)")
     }
 
     // MARK: - CBCentralManagerDelegate
@@ -294,7 +342,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
             //        else if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:POLARH7_HRM_BODY_LOCATION_CHARACTERISTIC_UUID]]) {
             //            [self getBodyLocation:characteristic];
             //        }
-            return
+            getBodyLocation(characteristic.value)
             
         default:
             return
@@ -303,12 +351,5 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
 //
 //        // Add your constructed device information to your UITextView
 //        self.deviceInfo.text = [NSString stringWithFormat:@"%@\n%@\n%@\n", self.connected, self.bodyData, self.manufacturer];
-    }
-    
-    // MARK: - ???? Public Methods and Properties
-    
-    func bodyLocation() -> String
-    {
-        return "Body location"
     }
 }
