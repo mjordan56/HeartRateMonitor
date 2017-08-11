@@ -209,8 +209,7 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     // CBCentralMangerDelegate - This is called with the CBPeripheral class as its main input
     // parameter. This contains most of the information there is to know about a BLE peripheral.
     //
-    func centralManager(_ central: CBCentralManager!, didDiscoverPeripheral peripheral: CBPeripheral!, advertisementData: [AnyHashable: Any]!, RSSI: NSNumber!)
-    {
+    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
         if let localName = advertisementData[CBAdvertisementDataLocalNameKey] as! String? {
             if !localName.isEmpty {
                 NSLog("Found the heart rate monitor: \(localName)")
