@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13156.6" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="13178.6" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
     <device id="retina4_0" orientation="portrait">
         <adaptation id="fullscreen"/>
     </device>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13137.5"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="13156.2"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -20,11 +20,49 @@
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="320" height="568"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Heart Rate Monitor" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="hQf-kc-bfI">
+                                <rect key="frame" x="20" y="28" width="280" height="32"/>
+                                <fontDescription key="fontDescription" style="UICTFontTextStyleTitle1"/>
+                                <nil key="textColor"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <imageView userInteractionEnabled="NO" contentMode="TopLeft" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="dj9-lr-ilJ">
+                                <rect key="frame" x="20" y="68" width="280" height="128"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="128" id="NXM-Ae-fRM"/>
+                                </constraints>
+                            </imageView>
+                            <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="P1I-dd-znp">
+                                <rect key="frame" x="20" y="204" width="280" height="356"/>
+                                <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                                <string key="text">Lorem ipsum dolor sit er elit lamet, consectetaur cillium adipisicing pecu, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Nam liber te conscient to factor tum poen legum odioque civiuda.</string>
+                                <fontDescription key="fontDescription" type="system" pointSize="14"/>
+                                <textInputTraits key="textInputTraits" autocapitalizationType="sentences"/>
+                            </textView>
+                        </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <constraints>
+                            <constraint firstItem="dj9-lr-ilJ" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" symbolic="YES" id="6je-r4-7F5"/>
+                            <constraint firstItem="hQf-kc-bfI" firstAttribute="top" secondItem="y3c-jy-aDJ" secondAttribute="bottom" constant="8" symbolic="YES" id="9VI-8L-jGg"/>
+                            <constraint firstItem="wfy-db-euE" firstAttribute="top" secondItem="P1I-dd-znp" secondAttribute="bottom" constant="8" symbolic="YES" id="DMr-xG-xXb"/>
+                            <constraint firstItem="dj9-lr-ilJ" firstAttribute="top" secondItem="hQf-kc-bfI" secondAttribute="bottom" constant="8" symbolic="YES" id="QfU-An-YZD"/>
+                            <constraint firstItem="hQf-kc-bfI" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" symbolic="YES" id="Vlj-FY-s78"/>
+                            <constraint firstItem="P1I-dd-znp" firstAttribute="top" secondItem="dj9-lr-ilJ" secondAttribute="bottom" constant="8" symbolic="YES" id="WMx-Wu-yVm"/>
+                            <constraint firstAttribute="trailing" secondItem="P1I-dd-znp" secondAttribute="trailing" constant="20" symbolic="YES" id="gdD-Ne-IlV"/>
+                            <constraint firstItem="P1I-dd-znp" firstAttribute="leading" secondItem="8bC-Xf-vdC" secondAttribute="leading" constant="20" symbolic="YES" id="oIU-CA-0hk"/>
+                            <constraint firstAttribute="trailing" secondItem="dj9-lr-ilJ" secondAttribute="trailing" constant="20" symbolic="YES" id="oLK-0D-hOj"/>
+                            <constraint firstAttribute="trailing" secondItem="hQf-kc-bfI" secondAttribute="trailing" constant="20" symbolic="YES" id="t9b-z6-fGo"/>
+                        </constraints>
                     </view>
+                    <connections>
+                        <outlet property="deviceInfo" destination="P1I-dd-znp" id="bAS-5x-KUS"/>
+                        <outlet property="heartImage" destination="dj9-lr-ilJ" id="B0p-tv-yoR"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
+            <point key="canvasLocation" x="140.625" y="173.2394366197183"/>
         </scene>
     </scenes>
 </document>
