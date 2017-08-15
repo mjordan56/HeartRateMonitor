@@ -9,6 +9,8 @@
 import Foundation
 import CoreBluetooth
 
+let HeartRateMeasurementDidUpdate = "com.michalgaryjordan.heartRateMeasurementDidUpdate"
+
 class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate {
     
     // MARK: - Bluetooth GATT Services
@@ -55,12 +57,12 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     // https://developer.bluetooth.org/gatt/characteristics/Pages/CharacteristicViewer.aspx?u=org.bluetooth.characteristic.heart_rate_measurement.xml
     //
     fileprivate enum HeartRateMeasurement: UInt8 {
-        case heartRateValueFormatUInt8  = 0b00000000
-        case heartRateValueFormatUInt16 = 0b00000001
-        case sensorContactIsSupported   = 0b00000100
-        case sensorContactDetected      = 0b00000110
-        case energyExpended             = 0b00001000
-        case rrInterval                 = 0b00010000
+        case formatUInt8              = 0b00000000
+        case formatUInt16             = 0b00000001
+        case sensorContactIsSupported = 0b00000100
+        case sensorContactDetected    = 0b00000110
+        case energyExpended           = 0b00001000
+        case rrInterval               = 0b00010000
         
         func flagIsSet(_ flagData: UInt8) -> Bool {
             return (flagData & self.rawValue) != 0
@@ -75,12 +77,12 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     var connected: String? = nil
     var polarH7DeviceData: String? = nil
     
-    fileprivate(set) var heartRate = 0
+    private(set) var heartRate = 0
     fileprivate(set) var sensorDetected = false
     fileprivate(set) var energyExpended:Int?
     fileprivate(set) var rrIntervals = [Float]()
     
-    fileprivate(set) var manufacturerName: String?
+    private(set) var manufacturerName = ""
     
     // MARK: - Methods
     
@@ -94,47 +96,42 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     //   [centralManager scanForPeripheralsWithServices:services options:nil];
     }
     
-    fileprivate func getHeartRateMeasurementData(_ hrmData: Data)
+    fileprivate func getHeartRateMeasurementData(_ data: Data)
     {
+        print("Heart rate measurement data: \(data.debugDescription)")
         // Maintain an index into the measurement data of the next byte to read.
         var byteIndex = 0
         
-        var hrmFlags: UInt8 = 0
-        (hrmData as NSData).getBytes(&hrmFlags, length: MemoryLayout<UInt8>.size)
+        let hrmFlags: UInt8 = data.getValue(start: byteIndex, length: MemoryLayout<UInt8>.size)
         byteIndex += MemoryLayout<UInt8>.size
         
-        if HeartRateMeasurement.heartRateValueFormatUInt16.flagIsSet(hrmFlags) {
-            var value: UInt16 = 0
-            (hrmData as NSData).getBytes(&value, range: NSMakeRange(byteIndex, MemoryLayout<UInt16>.size))
-            byteIndex += MemoryLayout<UInt16>.size
-            heartRate = Int(value)
-        }
-        else {
-            var value: UInt8 = 0
-            (hrmData as NSData).getBytes(&value, length: MemoryLayout<UInt8>.size)
-            byteIndex += MemoryLayout<UInt8>.size
-            heartRate = Int(value)
-        }
+        let length = HeartRateMeasurement.formatUInt16.flagIsSet(hrmFlags) ? MemoryLayout<UInt16>.size : MemoryLayout<UInt8>.size
+        heartRate = data.getValue(start: byteIndex, length: length)
+        byteIndex += length
         
         if HeartRateMeasurement.sensorContactIsSupported.flagIsSet(hrmFlags) {
             sensorDetected = HeartRateMeasurement.sensorContactDetected.flagIsSet(hrmFlags)
         }
         
         if HeartRateMeasurement.energyExpended.flagIsSet(hrmFlags) {
-            var value: UInt16 = 0
-            (hrmData as NSData).getBytes(&value, range: NSMakeRange(byteIndex, MemoryLayout<UInt16>.size))
+            energyExpended = data.getValue(start: byteIndex, length: MemoryLayout<UInt16>.size)
             byteIndex += MemoryLayout<UInt16>.size
-            energyExpended = Int(value)
         }
         
         if HeartRateMeasurement.rrInterval.flagIsSet(hrmFlags) {
-            while byteIndex < hrmData.count {
-                var value: UInt16 = 0
-                (hrmData as NSData).getBytes(&value, range: NSMakeRange(byteIndex, MemoryLayout<UInt16>.size))
+            while data.count - byteIndex >= MemoryLayout<UInt16>.size {
+                let value: UInt16 = data.getValue(start: byteIndex, length: MemoryLayout<UInt16>.size)
                 byteIndex += MemoryLayout<UInt16>.size
+//                rrIntervals.append(Float(value) / 1024.0)
+                if rrIntervals.count > 20 {
+                    rrIntervals.removeAll()
+                }
                 rrIntervals.append(Float(value) / 1024.0)
             }
         }
+        
+        NotificationCenter.default.post(name: NSNotification.Name(HeartRateMeasurementDidUpdate),
+                                        object: self, userInfo: ["heartRate" : heartRate, "sensorDetected" : sensorDetected])
         
         NSLog("Heart rate: \(heartRate)")
         NSLog("Sensor detected: \(sensorDetected)")
@@ -144,12 +141,10 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
         NSLog("RR Intervals: \(rrIntervals)")
     }
     
-    fileprivate func getManufacturerName(_ manufacturerNameData: Data)
+    fileprivate func getManufacturerName(_ data: Data)
     {
-        if let manufacturerNameString = NSString(data: manufacturerNameData, encoding: String.Encoding.utf8.rawValue) as String? {
-            manufacturerName = manufacturerNameString
-            NSLog("Manufacturer Name: \(manufacturerName ?? "Unknown Manufacturer")")
-        }
+        manufacturerName = String(data: data, encoding: String.Encoding.utf8) ?? "Unknown Manufacturer"
+        NSLog("Manufacturer Name: \(manufacturerName)")
     }
 
     // MARK: - CBCentralManagerDelegate
@@ -307,5 +302,11 @@ class HeartRateMonitor: NSObject, CBCentralManagerDelegate, CBPeripheralDelegate
     func bodyLocation() -> String
     {
         return "Body location"
+    }
+}
+
+extension Data {
+    func getValue<T>(start: Int, length: Int) -> T {
+        return self.subdata(in: start..<start+length).withUnsafeBytes { $0.pointee }
     }
 }
